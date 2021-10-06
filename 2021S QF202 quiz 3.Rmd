@@ -1,0 +1,60 @@
+---
+title: "QF 202 Quiz 3"
+date: "2/18/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+1. Download stock price data using package `quantmod` for AAPL and GOOG from 2015-01-01 to 2021-01-01, and compute their daily **log return**.
+
+```{r}
+# Do not include install.packages() commands
+library(quantmod)
+
+name_list <- c("GOOG",  "AAPL")
+getSymbols(name_list, from = "2015-01-01", to = "2021-01-01", src = "yahoo")
+
+#head(diff(log(AAPL$AAPL.Adjusted)))
+#head(diff(log(GOOG$GOOG.Adjusted)))
+
+AAPL_log_daily_rtn <- dailyReturn(AAPL, type = "log")
+GOOG_log_daily_rtn <- dailyReturn(GOOG, type = "log")
+
+head(AAPL_log_daily_rtn)
+head(GOOG_log_daily_rtn)
+
+```
+2. Please adapt the recitation code to construct a linear model using returns from part 1. Explain why you chose AAPL as explanatory and GOOG as response or vice-versa. Print out the regression summary.
+
+```{r}
+plot(as.vector(GOOG_log_daily_rtn),as.vector(AAPL_log_daily_rtn) )
+regression.relation=lm(GOOG_log_daily_rtn~AAPL_log_daily_rtn)
+summary(regression.relation)
+
+plot(regression.relation)
+
+#chose google as the predictive var because its more affected by the tech secotrs and the correlation is pos
+
+
+
+```
+
+3. Write down the null hypothesis and alternative hypothesis of a significance test about the relationship between AAPL daily log return and GOOG daily log return. What is the p-value of the test? State your conclusion. 
+```{r}
+t.test(as.vector(AAPL_log_daily_rtn),as.vector(GOOG_log_daily_rtn), alternative = "two.sided" , conf.level = 0.95)
+#p val 0.71, no significant correlation
+
+#Ho: there is no predictive relationship
+#HA: there is a predictive relationship between google and apple
+```
+
+
+
+
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

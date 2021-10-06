@@ -1,0 +1,33 @@
+---
+title: "QF 202 Quiz 6"
+date: "3/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(2021)
+```
+
+# Question 1
+
+1. Generate an autocorrelated sequence (length = 10000) that follows the following recurrsive equation
+$$X_t = 0.5X_{t-1}+0.3X_{t-2}+\varepsilon_t$$
+where $\varepsilon\sim \mathcal{N}(0, 0.5)$. (Hint: check recitation script and the help page for `arima.sim` function.)
+
+```{r}
+data_generate <- arima.sim(list(ar = c(0.5, 0.3)), n = 10000, sd = sqrt(0.5), mean = 0)
+plot(data_generate, type = 'l')
+```
+
+2. State the order of the AR model.
+
+
+3. Calculate ACF and PACF for the first 10 lags, state your conclusion.
+```{r}
+acf(data_generate, lag = 10)
+pacf(data_generate, lag = 10)$acf
+#the lag 1 is the best fit
+```
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

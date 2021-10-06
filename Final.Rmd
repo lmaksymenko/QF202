@@ -1,0 +1,206 @@
+---
+title: "Final"
+author: "Leonid Maksymenko"
+date: "5/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(quantmod)
+library(TSA)
+library(forecast)
+```
+
+```{r}
+#a
+Stock = getSymbols('GME', from = "2018-01-01", to = "2021-01-01", src = "yahoo", auto.assign=FALSE)
+Stockadj = Stock$GME.Adjusted
+Stocklog = dailyReturn(Stockadj, type = "log")
+
+plot(Stockadj, col = 'red', main="GME Adjusted Close", xlab = 'Date', ylab = 'Price in $')
+plot(Stocklog, col = 'red', main="GME Adjusted Close Log Returns", xlab = 'Date', ylab = 'Return in %')
+```
+
+```{r}
+#b
+Stockvec = as.vector(Stockadj)
+testing = tail(Stockvec, 5)
+training = head(Stockvec, -5)
+len = length(training)
+
+#add legends, wtf do the instructions mean???
+plot(tail(training, 5), 
+     col = 'black', 
+     main="GME Adjusted Close", xlab = 'Date', ylab = 'Price in $', 
+     ylim = c(-25,25), 
+     xlim = c(1,10),
+     type = 'l')
+lines(testing, x = c(5,6,7,9, 10), col = 'red')
+legend("bottomleft",
+       legend = c('Last 5 days Training', 'Testing'),
+       col = c('black', 'red'),
+       pch = 15
+)
+
+```
+
+```{r}
+#c
+
+acf(training)
+pacf(training)
+
+
+#AR model
+armodel = ar(training ,method="mle")
+armodel # order 9 best
+#remaking the model using arima because ar function doesnt work with predict function
+armodel = arima(training, order = c(9,0,0))
+
+###NOT WORKING###
+#maxord = 30
+#armodel.aic=c()
+#for (q in 1:maxord){
+#  try(
+#    (armodel.aic = append(model.aic, arima(training,order=c(q,0,0))$aic))
+#  )
+#}
+#arorder = match( min(model.aic), model.aic)
+#arorder
+
+#MA model
+maxord = 30
+mamodel.aic=c()
+for (q in 1:maxord){
+  mamodel.aic = append(mamodel.aic, arima(training,order=c(0,0,q))$aic)
+}
+maorder = match( min(mamodel.aic), mamodel.aic)
+maorder # best order is 27
+mamodel = arima(training, order = c(0,0,maorder))
+
+#ARMA model
+
+#combining the 2 models to form the arma
+arma = auto.arima(training)
+
+```
+
+```{r}
+#d
+#predict the last 5 days
+predictionar = predict(armodel,5)
+predictionar = as.vector(predictionar$pred)
+predictionar#20.68158 20.59473 20.32544 20.15361 19.95017
+
+predictionma = predict(mamodel,5)
+predictionma = as.vector(predictionma$pred)
+predictionma#21.20355 21.32604 21.78675 22.20136 22.35209
+
+predictionarma = predict(arma,5)
+predictionarma = as.vector(predictionarma$pred)
+predictionarma#23.24346 25.05011 27.33734 29.35813 31.52664
+```
+
+```{r}
+#e
+#compute sum of squared errors
+errorar = sum((testing - predictionar)^2)
+errorar #3.363669
+
+errorma = sum((testing - predictionma)^2)
+errorma #28.00169
+
+errorarma = sum((testing - predictionarma)^2)
+errorarma #352.2963
+
+#ar model had the best prediction
+```
+
+Interview Problem
+
+```{r}
+#import csv
+Final_Data = read.csv("Final_Data.csv",header=T)
+
+#simple linear regression
+linmod <- lm(y~x, data = Final_Data)
+resid <- linmod$residuals
+  #assumptions violated?
+    
+    par(mfrom = c(2,2))
+    plot(linmod)
+    
+    #linearity of data
+      #Residuals v. Fitted used to check linear relationship assumptions. Horizontal line without distinct patterns implies linear relationship 
+        #good
+    
+    #normality of residuals
+      #Normal QQ Checks the normality of the residuals, if they follow the diagonal line that is good
+        #good
+      #Can also use normality tests
+  
+    #Homogeneity of residuals variance
+      #Scale-Location Checks homogeneity of the variance of the residuals (homoscedasticity) 
+        #line horizontal good but points arent every evenly spread
+      
+    #extra?
+      #residuals v Leverage checks for extreme data point that could skew the regression
+        #The line looks straight are there are no outlier points outside the Cook's distance that heavily influence the data
+    
+    #independence of residual error terms
+      #testing for autocorrelation
+      acf(resid)
+      #may be concers with independence
+
+```
+
+
+```{r}
+#c
+
+#brute force armiax model(p,0,q) for p and q 0 to 3
+aic.matrix = function(data, ar_order, ma_order)
+{
+  AIC_matrix <- matrix(NA, nrow = ar_order+1, ncol = ma_order+1)
+  for(i in 0 : ar_order)
+  {
+    for(j in 0 : ma_order)
+    {
+      tem <- tryCatch(arimax(data, order = c(i, 0, j))$aic, 
+                      error = function(cond)
+                      {
+                        message(cond)
+                        message(". AR: ", i, "; MA: ",j)
+                        return (NA)
+                      }
+      )
+      
+      AIC_matrix[i+1, j+1] <- tem
+    }
+  }
+  AIC_matrix
+}
+
+matrix = aic.matrix(resid, 3, 3)
+matrix
+which(matrix == min(na.omit(matrix)), arr.ind = TRUE) -1
+#best model is 1,0,1
+```
+
+```{r}
+#d
+#make the model
+arimaxModel <- arimax(resid,order = c(1,0,1))
+# Check independence of residuals
+
+tsdiag(arimaxModel)          
+Box.test(arimaxModel$resid,lag=10,type='Ljung') 
+#the p value is very high, we do not reject the null (white noise), thus, residuals are white noise
+```
+
+         [,1]     [,2]     [,3]     [,4]
+[1,] 12503.69 11127.71 10958.74 10943.89
+[2,] 10979.27 10937.29 10939.19 10940.91
+[3,] 10938.24 10939.21 10941.13 10942.77
+[4,] 10939.09 10941.10 10942.84 10944.78

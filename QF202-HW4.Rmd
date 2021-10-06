@@ -1,0 +1,242 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+Leonid Maksymenko
+
+```{r setup, include=FALSE, warning=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(forecast)
+library(tseries)
+library(TSA)
+library(quantmod)
+library(fUnitRoots)
+library(lubridate)
+library(pracma)
+```
+
+##Problem 1
+
+```{r}
+#A
+#model
+sim = arima.sim(
+      model = list(order = c(4,0,0), 
+                   ar = c(-0.9598, 
+                          -0.9612, 
+                          -0.8503, 
+                          0.0412
+                          )),
+      n = 1826,
+      sd = 1, 
+      mean = 0
+      )
+
+#show stationary
+adf.test(sim, alternative = "stationary")
+```
+
+```{r}
+#B
+acf(sim)
+pacf(sim)
+```
+The PACF chart for the AR model indicates that the model has a order of 3. The ACF for AR models is not useful as it does not present a distinct cutoff point.
+
+```{r}
+#C
+auto.arima(sim)
+arima(sim, order = c(4,0,0))
+#benchmark
+#since the models are based on arbitrary random data simply comparing how close our predicted model is to the model we initially created should suffice
+arimapred = c(-0.9692,  -0.9773,  -0.8674,  0.0322) 
+ar = c(-0.9598, -0.9612,-0.8503,0.0412)
+ar - arimapred
+#0.0094 0.0161 0.0171 0.0090
+```
+The predicted arima model was more accurate than the auto.arima and fairly accurate over all.
+
+##Problem 2
+
+```{r}
+#
+#model
+sim1 = arima.sim(
+      model = list(order = c(0,0,4), 
+                   ma = c(sqrt(3), 
+                          sqrt(3), 
+                          sqrt(3), 
+                          0.9)),
+      n = 1826,
+      sd = 1, 
+      mean = 0
+      )
+
+#show stationary
+adf.test(sim1, alternative = "stationary")
+
+#show invertible
+Mod(polyroot(c(1,
+               sqrt(3), 
+               sqrt(3), 
+               sqrt(3), 
+               0.9)))
+#all roots > 1 => invertible
+
+#B
+acf(sim1)
+pacf(sim1)
+
+#C
+auto.arima(sim1)
+arima(sim1, order = c(0,0,4))
+arimapred1 = c(1.7483,  1.7477,  1.7453,  0.9182) 
+ma = c(sqrt(3),sqrt(3),sqrt(3),0.9)
+ma- arimapred1
+#-0.01624919 -0.01564919 -0.01324919 -0.01820000
+```
+The ACF chart for an MA model shows its order. In this case the ACf indicates that the model has an order of 4 which is correct. The PACF for MA is not useful in identifying its order as it slowly tapers off.
+The predicted arima model was more accurate than the auto.arima and fairly accurate over all.
+
+
+```{r}
+aic.matrix = function(data, ar_order, ma_order)
+{
+  AIC_matrix <- matrix(NA, nrow = ar_order+1, ncol = ma_order+1)
+  for(i in 0 : ar_order)
+  {
+    for(j in 0 : ma_order)
+    {
+      tem <- tryCatch(arima(data, order = c(i, 0, j))$aic, 
+                      error = function(cond)
+                      {
+                        message(cond)
+                        message(". AR: ", i, "; MA: ",j)
+                        return (NA)
+                      }
+      )
+      
+      AIC_matrix[i+1, j+1] <- tem
+    }
+  }
+  AIC_matrix
+}
+```
+##Problem 3
+
+```{r}
+#a
+sim2 = arima.sim(
+      model = list(order = c(4,0,4), 
+                   ar = c(-0.9598, 
+                          -0.9612, 
+                          -0.8503, 
+                          0.0412
+                          ),
+                   ma = c(sqrt(3), 
+                          sqrt(3), 
+                          sqrt(3), 
+                          0.9)),
+      n = 1826,
+      sd = 1, 
+      mean = 0
+      )
+
+adf.test(sim2, alternative = "stationary")
+
+acf(sim2)
+pacf(sim2)
+eacf(sim2)
+
+```
+The ACf has no clear cutoff.
+The PACF also has no clear cutoff.
+The EACF Starts to make a solid prediction around the AR 4-5 point and begins to give returns on MA 4, however, they only become significant at MA 5-7.
+
+```{r}
+#b
+#matrix = aic.matrix(sim2,10,10)
+#matrix
+#which(Reshape(rank(na.omit(matrix))<8, 11)==T, arr.ind = T) -1
+```
+          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]     [,8]     [,9]    [,10]    [,11]
+ [1,] 6663.331 6226.910 6226.224 6084.093 5895.859 5877.562 5874.266 5813.881 5724.752 5688.405 5690.155
+ [2,] 6441.731 6227.484 6223.388 5705.245 5687.458 5871.540 5873.262 5567.369 5568.556 5547.893 5689.205
+ [3,] 6286.638 6166.499 5717.216 5703.114 5707.969 5667.008 5601.716 5581.017 5569.551 5571.300 5476.643
+ [4,] 6025.025 6026.154 5883.452 5751.023 5270.988 5269.642 5271.638 5273.056 5273.562 5275.507 5276.097
+ [5,] 6024.918 5817.059 5761.537 5599.453 5269.632 5271.563 5271.522 5273.299 5273.717 5271.640 5271.936
+ [6,] 5903.285 5691.886 5693.198 5617.044 5271.630 5273.564 5274.512 5273.402 5274.157 5276.348 5277.275
+ [7,] 5882.372 5693.629 5691.349 5535.570 5272.909 5273.100 5272.863 5276.047 5273.358 5273.237 5271.531
+ [8,] 5881.303 5675.729 5504.183 5473.720 5273.706 5272.887 5275.492 5272.653 5270.279 5273.353 5270.579
+ [9,] 5820.437 5579.180 5504.622 5502.183 5275.704 5270.782 5277.317 5272.178 5274.332 5265.802 5275.825
+[10,] 5613.485 5528.032 5525.986 5401.865 5275.332 5271.081 5273.529 5275.263 5272.496 5267.035 5272.459
+[11,] 5571.325 5525.334 5527.307 5376.293 5274.467 5273.014 5275.004 5275.572 5267.262 5268.387 5270.148
+     
+     row col
+#[1,]   4   4
+[2,]   3   5
+[3,]  10   8
+[4,]   8   9
+[5,]   9   9
+[6,]  10   9
+[7,]  10  10
+
+The brute force method predicts the model to be AR 4 and MA 4
+```{r}
+#C
+arima(sim2, order = c(4,0,4))#using 4,0,4 since that was our prediced model by the brute force aic
+armapred = c(-0.9696,  -0.9691,  -0.8545,  0.0465,  1.7541,  1.7542,  1.7612,  0.9224)
+arma = c(-0.9598, -0.9612,-0.8503,0.0412, sqrt(3),sqrt(3),sqrt(3),0.9)
+arma-armapred
+```
+The prediction was over all accurate and lost accuracy when predicting the ma part
+
+##Problem 4
+
+```{r}
+getSymbols('TSLA', from = "2016-01-01", to = "2021-01-01", src = "yahoo")
+
+logreturns = dailyReturn(TSLA$TSLA.Adjusted, type = "log")[-1]
+
+adf.test(logreturns)
+
+#p value small => unit root does not exist + stationary
+
+#eacf
+eacf(logreturns)
+
+
+matrix2 = aic.matrix(logreturns, 10, 10)
+matrix2
+which(matrix2 == min(na.omit(matrix2)), arr.ind = TRUE) -1
+# order is AR8,MA9
+
+model2 <- arima(logreturns, order = c(8, 0, 9))
+model2
+
+```
+
+           [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]      [,8]      [,9]     [,10]     [,11]
+ [1,] -4768.220 -4766.261 -4767.289 -4768.744 -4767.574 -4766.949 -4766.293 -4765.808 -4763.901 -4761.921 -4761.809
+ [2,] -4766.265 -4764.263 -4766.586 -4767.172 -4766.728 -4765.385 -4764.986 -4764.587 -4761.901 -4759.920 -4759.808
+ [3,] -4767.170 -4766.143 -4773.996 -4772.346 -4771.362 -4766.046 -4771.845 -4762.673 -4760.589 -4758.257 -4758.578
+ [4,] -4767.867 -4766.409 -4772.368 -4770.505 -4768.492 -4771.559 -4770.857 -4768.145 -4768.616 -4768.023 -4765.065
+ [5,] -4766.943 -4766.124 -4771.635 -4768.375 -4768.949 -4770.067 -4769.291 -4771.770 -4770.216 -4765.724 -4768.741
+ [6,] -4766.437 -4764.869 -4772.476 -4770.275 -4770.189 -4771.933 -4772.643 -4766.353 -4773.180 -4769.494 -4762.947
+ [7,] -4765.911 -4764.657 -4773.161 -4772.574 -4772.796 -4774.688 -4770.757 -4764.787 -4771.179 -4769.145 -4771.372
+ [8,] -4765.745 -4764.497 -4772.272 -4761.026 -4773.006 -4767.061 -4774.351 -4770.320 -4769.917 -4769.689 -4771.303
+ [9,] -4763.998 -4762.520 -4760.515 -4768.440 -4771.813 -4769.748 -4768.748 -4771.556 -4768.294 -4776.800 -4767.422
+[10,] -4762.126 -4760.718 -4758.531 -4767.988 -4771.933 -4771.482 -4768.624 -4767.369 -4765.659 -4773.702 -4775.881
+[11,] -4762.244 -4760.823 -4758.927 -4765.379 -4769.911 -4761.366 -4767.141 -4770.202 -4769.493 -4776.694 -4773.097
+
+     row col
+[1,]   8   9
+
+ar term. -0.3191  0.7142  0.8832  -0.7935  -0.2475  0.1504  0.0806  -0.56  0.3274  -0.666
+ma term. -0.8536  0.7444  0.1392  -0.1537  0.0074  0.6439  -0.0257     0.0023
+sigma^2 estimated as 0.00127:  log likelihood = 2406.4,  aic = -4776.8
+
+Look like a good model based on the lof likleyhood and low aic.

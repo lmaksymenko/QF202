@@ -1,0 +1,37 @@
+---
+title: "QF 202 Quiz 5"
+date: "3/4/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(2021)
+```
+
+# Question 1
+
+Download stock price data for Google (GOOG) from 2010-01-01 to 2019-12-31 and calculate simple return sequence using `dailyReturn` function and adjusted close price.
+
+```{r}
+# Do not forget loading quantmod library
+library(quantmod)
+getSymbols("GOOG", from = "2010-01-01", to = "2019-12-31")
+ret <- dailyReturn(GOOG, type = 'arithmetic')
+
+
+```
+
+# Question 2
+Apply the Ljung Box test using 10 lags on the return sequence in Question 1. What do you conclude?
+
+```{r}
+Box.test(ret, lag = 10, type = "Ljung-Box")
+#we have a large p value and cannot reject the null, the data to lag 10 is independent
+
+acf(ret, lag.max = 10)
+```
+
+
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

@@ -1,0 +1,45 @@
+---
+title: "QF 202 Quiz 7"
+date: "3/18/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(2021)
+```
+
+# Question 1
+
+1. Please analyze the following code. Run the code to generate a sequence of length = 10000. 
+
+```{r}
+n = 10000
+epsilon=rnorm(n,sd=0.5)
+rt = epsilon[-n]-0.4*epsilon[-1]
+
+```
+
+Please write down in the provided space the name of the model, its formula dynamics using the numerical values of the parameters.
+
+
+r_t = a_t - 0.4*a_{t-1}
+a_t~N(0,0.5) for all t
+
+
+2. Fit the data to the model using `arima()` function, and the proper order. Display the results from `tsdiag()` and state your observations.
+```{r}
+model = arima(x = rt, order = c(0, 0, 1))
+tsdiag(model)
+
+#we have not evidence against the null (all tested lags are zero), we can assume the series is stationary and modeled correctly
+```
+
+3. Output 5-step prediction using the estimated model. 
+
+```{r}
+predict(model, n.ahead = 5)
+```
+
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

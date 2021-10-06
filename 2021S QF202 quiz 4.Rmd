@@ -1,0 +1,42 @@
+---
+title: "QF 202 Quiz 4"
+date: "2/25/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(2021)
+```
+
+# Question 1
+
+Generate 100 random variables that follow t distribution (df=5), and calculate the **excess** kurtosis.
+
+```{r}
+library(fBasics)
+library(moments)
+kurtosis(rt(10000, df = 5))-3
+```
+
+# Question 2
+Generate 100 random numbers that follow normal distribution and plot Q-Q plot.
+
+```{r}
+#qqnorm
+data = rnorm(100, mean = 0, sd = 1)
+qqnorm(data)
+```
+
+# Question 3
+
+Generate 100 random numbers that follow an exponential distribution with $\lambda=2$, then perform a Jarque-Bera test and state the conclusion of the normality test.
+
+```{r}
+normalTest(rexp(100, rate = 2), method = "jb")
+#the p value is very small, we reject the null hyp. (that it is normally dist)
+```
+
+
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

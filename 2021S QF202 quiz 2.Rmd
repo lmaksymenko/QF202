@@ -1,0 +1,87 @@
+---
+title: "QF 202 Quiz 2"
+date: "2/10/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+1. Download stock price data using package `quantmod` for AMZN and WMT from 2015-01-01 to  2021-01-01
+
+```{r}
+library(quantmod)
+
+name_list <- c("AMZN", "WMT")
+getSymbols(name_list, from = "2015-01-01", to = "2021-01-01", src = "yahoo")
+
+```
+2. Calculate **simple returns** for both stocks and name them as _x_ and _y_ respectively, print `head(x)` and `head(y)`.
+
+```{r}
+s_returns1 = diff(AMZN$AMZN.Adjusted)
+s_returns2 = diff(WMT$WMT.Adjusted)
+
+n <- length(s_returns1)
+x <- as.vector(s_returns1[2:(n-1)])
+
+n <- length(s_returns2)
+y <- as.vector(s_returns2[3:n])
+head(cbind(x, y))
+
+head(x)
+head(y)
+```
+
+3. Remove NA from the data and calculate the covariance matrix and correlation matrix, what can you say about them?
+
+```{r}
+cov(x, y)
+cor(x, y)
+
+cov(cbind(x, y))
+cor(cbind(x, y))
+
+amzn_ret = diff(AMZN$AMZN.Adjusted)[-1]
+wmt_ret = diff(WMT$WMT.Adjusted)[-1]
+
+
+data <- cbind(amzn_ret, wmt_ret)
+#data
+
+cov(data)
+cor(data)
+
+```
+
+
+# Question 2
+
+The following code generates a sequence, take a look at the code and inteprete the structure of this sequence. Write down the recursive relationship. Bonus: State the name of this sequence.
+
+```{r}
+a = 1
+b = 1
+x = c(a,b)
+x
+
+for (i in 1:100)
+{
+  temp <- a+b
+  a<-b
+  b<-temp
+  x <- append(x, b)
+}
+x
+```
+
+Your answer:
+add the last two numbers together to make the next. fibonacci
+
+
+
+
+# Do not forget to compile the source file to a report before you submit it on Canvas!

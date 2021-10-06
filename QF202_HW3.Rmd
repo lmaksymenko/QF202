@@ -1,0 +1,125 @@
+---
+title: "QF202 Homework 3"
+author: "Leonid Maksymenko"
+date: "3/26/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Problem 1. (20 points)** For this problem, use the Yahoo! Finance website (http://finance.
+yahoo.com/) or use the quantmod package. Choose any equity you want. Download 5 years worth
+of daily data for the equity you chose from January 1, 2016 to December 31, 2020. Please pay
+attention to when the data actually starts and ends.
+
+**(a)** Make a time series plot of the daily close prices (if you downloaded data from Yahoo! Finance,
+use the Adj. Close column). Please include a title and labels for each of the axes in the plot.
+
+```{r}
+library('quantmod')
+library(ggplot2)
+getSymbols(c('GME'), from = "2016-01-01", to = "2020-12-31", src = "yahoo")
+gme_initial <- GME
+GME_df <- as.data.frame(gme_initial$GME.Adjusted)
+
+ggplot(GME_df, aes(x = row.names(GME_df), y= GME.Adjusted, group = 1, color = 0)) +
+  theme_bw() + theme(legend.position = "none") +
+  geom_line() + ggtitle('GME Adj. Close 2016-01-01 -- 2020-12-31') +
+  xlab('Date') + ylab('Price') #+ scale_x_discrete(breaks = 0) +
+  #scale_y_discrete(breaks = c('5','10','15','20','25'))
+
+```
+
+
+**(b)** Using the adjusted close prices, compute the corresponding series of log returns. Make a
+histogram and a time series plot of the returns. Report the summary statistics using the
+command summary.
+
+```{r}
+GME_log_daily_rtn <- dailyReturn(gme_initial, type = "log")
+hist(GME_log_daily_rtn, col = 'red', xlab = 'Daily Return %', main = 'GME Daily Returns 2016/01/01 - 2020/12/31')
+plot(GME_log_daily_rtn, col = 'red', xlab = 'Daily Return %', main = 'GME Daily Returns 2016/01/01 - 2020/12/31')
+summary(GME_log_daily_rtn)
+```
+
+
+**Problem 2. (30 points)** Using the log returns computed in Problem 1, do the following:
+
+**(a)** Use R’s acf function to plot the first 30 lags of the autocorrelation function.
+
+```{r}
+acf(GME_log_daily_rtn, lag.max = 30)
+```
+
+**(b)** Provide the values of the first 5 lags of the autocorrelation function.
+
+```{r}
+acf(GME_log_daily_rtn, lag.max = 5, plot = FALSE)
+```
+
+**(c)** Use the PACF function to plot the partial autocorrelations. Based on the plot what is the
+recommended order of an AR model.
+
+```{r}
+pacf(GME_log_daily_rtn, lag = 100)
+pacf(GME_log_daily_rtn, lag = 100, plot = FALSE)
+#lag 30 seems to be the most significant, order 9 in next highest
+```
+
+**Problem 3. (40 points)**
+
+**(a)** Using the ARIMA function and the order p you determined in previous problem fit an AR(p)
+model to the returns.
+
+```{r}
+GME_arima <- arima(GME_log_daily_rtn, order = c(30,0,0))
+GME_arima
+```
+
+**(b)** Now use the built in function ar in R. Using criteria of your choice produce two models as
+outputted by the ar function.
+
+```{r}
+AME_ar_1 <- ar(GME_log_daily_rtn, order = 35)
+AME_ar_2 <- ar(GME_log_daily_rtn, order = 9)
+AME_ar_1
+AME_ar_2
+```
+
+**(c)** Download the same equity data from 2021 from January 1 until January 31. This is your test
+data. For each of the models you developed use the predict function to predict returns for
+the next 21 days. There should be 21 trading days in Jan 2021. For each model calculate the
+mean square error of the prediction by calculating:
+$$
+\frac{1}{21}\sum_{i=1}^{21} \left (\mathrm{Observed\:return_i}\:-\:\mathrm{Predicted\:return_i} \right )^2.
+$$
+
+
+```{r}
+getSymbols(c('GME'), from = "2021-01-01", to = "2021-01-31", src = "yahoo")
+GME_predict <- GME
+GME_log_daily_rtn_predict <- dailyReturn(GME_predict, type = "log")
+
+#AME_ar_1 <- ar(GME_log_daily_rtn, order = 35, newdata = GME_log_daily_rtn_predict)
+#AME_ar_2 <- ar(GME_log_daily_rtn, order = 35, demean = FALSE, newdata = GME_log_daily_rtn_predict)
+
+ar_1_predict <- predict(AME_ar_1, n.ahead = 19)
+ar_2_predict <- predict(AME_ar_2, n.ahead = 19)
+ar_1_predict[[1]]
+ar_2_predict[[1]]
+
+ar_1_error <- sum((ar_1_predict[[1]] - as.numeric(GME_log_daily_rtn_predict))^2)/19
+ar_2_error <- sum((ar_2_predict[[1]] - as.numeric(GME_log_daily_rtn_predict))^2)/19
+#ar1 error
+ar_1_error
+#ar2 error
+ar_2_error
+
+```
+**(d)** Which model is best from the prediction perspective. Explain.
+
+The models are nearly identical. So nether model would be better even though the lags are different.

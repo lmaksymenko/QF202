@@ -1,0 +1,139 @@
+---
+title: "QF202 HW2"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Problem 1. Confidence interval (30 points)** A 90% confidence interval for a population mean is $(25, 32)$.
+
+1. Can you reject the null hypothesis that $μ= 24$ against the two-sided alternative at the 10% significance level? Why?
+
+        We reject the null hypothesis because the mean falls outside the 10% confidence bounds.
+
+2. Can you reject the null hypothesis that $μ= 30$ against the two-sided alternative at the 10% significance level? Why?
+        
+        We fail to reject the null hypothesis because the mean lies within our 10% confidence bounds.
+
+3. Can you reject the null hypothesis that $μ= 24$ against the two-sided alternative at the 5% significance level? Explain.
+$$
+\text{Calculate the mean: }\\
+μ=\frac{25+32}{2}\\
+μ=28.5\\
+\text{Calculate the standard error: }\\
+25 = 28.5-1.6448*s_e\\
+s_e=2.1279\\
+\text{Calculate the new lower bound:}\\
+28.5-1.9599*2.1279=24.3295\\
+\\
+\text{ }\\
+\text{Conclude that we reject the null because the mean falls outside the 5% confidence bounds. }
+$$
+66666665
+**Problem 2. Simple Regression (40 points)**  
+For this problem you will need to download daily data for equities on the US markets. To do so you may use any data source. For example, you can use a Bloomberg terminal or even Yahoo or Google Finance. Please download daily equity trade data from January, 2015 to Dec 2019 for Coca Cola Company (KO) and PepsiCo (PEP). You need to download minimum the day of the record, Opening day value, Closing day value, and the volume of shares traded.
+
+  1. Import the data in your program. Please calculate the daily simple returns for each of the two stocks using:
+  
+$$R_i=\dfrac{(C_i−O_i)}{O_i}$$
+
+where $C_i$ is the close value of day $i$ and $O_i$ is the opening value for day $i$. Please pay  attention to the order of days in your imported dataset. For this     part submit the 5 number summary and a histogram for daily return for each of the equity. What do you observe?  
+
+```{r}
+
+library('quantmod')
+
+getSymbols(c('KO', 'PEP'), from = "2015-01-01", to = "2019-12-31", src = "yahoo")
+
+#KO.dayreturn = diff(KO$KO.Adjusted)/ KO$KO.Adjusted[-length(KO$KO.Adjusted)]
+#summary(KO.dayreturn)
+#hist(KO.dayreturn)
+
+KO.dayreturn2 = dailyReturn(KO, type = "arithmetic")
+summary(KO.dayreturn2)
+hist(KO.dayreturn2)
+
+#PEP.dayreturn = diff(PEP$PEP.Adjusted)/ PEP$PEP.Adjusted[-length(PEP$PEP.Adjusted)]
+#summary(PEP.dayreturn)
+#hist(PEP.dayreturn)
+
+PEP.dayreturn = dailyReturn(PEP$PEP.Adjusted, type = "arithmetic")
+summary(PEP.dayreturn)
+hist(PEP.dayreturn)
+```
+    
+  2. Perform a normality test using Coca Cola daily simple returns. What is the conclusion at the 95% confidence level?
+
+```{r}
+library(fBasics)
+normalTest(KO.dayreturn2)
+#We reject the null hypothesis, and conclude the the data is normal
+```
+
+  3. Perform a regression using return for Coca Cola as response and Pepsi as predictor. What is the R^2^? 
+```{r}
+
+
+#regression = lm(KO.dayreturn~PEP.dayreturn)
+ko2 = dailyReturn(KO, type = "arithmetic")
+pep2 = dailyReturn(PEP, type = "arithmetic")
+regression = lm( ko2 ~pep2 )
+summary(regression) # Details of the linear regression
+plot(regression)
+#R square  0.492
+
+```
+  
+  4. Test if the coefficients are equal to 0. Give the p-value of these tests. State the conclusions in terms of the problem. Write down the regression relationship.
+```{r}
+summary(regression)
+#Due to the large t value, we reject the null hypothesis. We conclude there is not relationship between KO and PEP 2.493e-05*6.889e-01(PEP)
+```
+  5. Predict the return of Coca Cola if the daily Pepsi return is 0.01 and also if it is -0.007. Give a 95% confidence interval for each one of these predictions.
+```{r}
+
+
+daily.returns <-data.frame(daily.returns = c(0.01, -0.007))
+pred <- predict.lm(regression,newdata = daily.returns,  interval = "confidence")
+#pred #sadly i cannot fix this
+```
+  6. Consider the daily returns of the two companies. Test whether or not the returns for these companies are the same or if they are significantly different statistically. State the null and alternative hypotheses. What is the p-value of the test. Write your conclusion in terms of the variables and parameters under study. Give a 95% confidence interval for the difference in daily returns.
+```{r}
+#Null: The distributions of daily returns are the same
+#Alt: Not the same
+# The bound is -0.0009077687  0.0005089601, the p value is 0.58 for the t.test and .61 for KS test, both show that we fail to reject the null, the means are the same.
+ks.test(x= KO.dayreturn2, y = PEP.dayreturn)
+t.test(x= KO.dayreturn2, y = PEP.dayreturn, conf.level = 0.95)       #, mu = mean(KO.dayreturn2) - mean(PEP.dayreturn))
+
+
+```
+
+  
+**Problem 3.  (30 points)** Using the Adjusted close prices of Coca Cola in Problem2, do the following:
+
+  **(a)** Calculate the log daily return.
+```{r}
+  KO.logreturn = dailyReturn(KO, type = "log")
+```
+  
+  **(b)** Use R’s acf function to plot the first 30 lags of the autocorrelation function.
+```{r}
+  acf(KO.logreturn,lag=1+1+1+1+1+5+5+5+10-1+1+0)
+```
+  **(c)** Provide the values of the first 5 lags of the autocorrelation function.
+```{r}
+  acf(KO.logreturn, lag = 5, plot = FALSE)
+```
+  **(d)** Use the PACF function to plot the partial autocorrelations. Based on the plot what is the recommended order of an AR model.
+```{r}
+  pacf(KO.logreturn)$acf
+```
+  
+  
+  
+  
+  
